@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="is">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tölfræði Íslands - Statistics Iceland</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Tölfræði Íslands</h1>
+            <p class="subtitle">Áhugaverð gögn frá Hagstofunni</p>
+        </header>
+
+        <main>
+            <section class="intro">
+                <h2>Velkomin/n!</h2>
+                <p>Þessi síða birtir áhugaverða tölfræði frá Hagstofu Íslands. Gögnin eru sótt beint úr opinni gagnaþjónustu Hagstofunnar.</p>
+            </section>
+
+            {% if raw_data %}
+            <section class="stats-section">
+                <h2>{{ raw_data.title if raw_data.title else 'Mannfjöldatölur' }}</h2>
+                
+                {% if raw_data.description %}
+                <p class="description">{{ raw_data.description }}</p>
+                {% endif %}
+
+                <div class="data-info">
+                    <p><strong>Uppfært:</strong> {{ raw_data.updated if raw_data.updated else 'Ekki vitað' }}</p>
+                    <p><strong>Heimild:</strong> <a href="https://px.hagstofa.is" target="_blank">Hagstofa Íslands</a></p>
+                </div>
+
+                {% if statistics %}
+                <div class="statistics-grid">
+                    {% for stat in statistics %}
+                    <div class="stat-card">
+                        {% for key, value in stat.items() %}
+                        <div class="stat-item">
+                            <span class="stat-label">{{ key }}:</span>
+                            <span class="stat-value">{{ value }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="no-data">Engin gögn til að birta.</p>
+                {% endif %}
+            </section>
+
+            <section class="raw-data-section">
+                <h3>Hrágögn (JSON)</h3>
+                <details>
+                    <summary>Smelltu hér til að sjá hrágögnin</summary>
+                    <pre><code>{{ raw_data | tojson(indent=2) }}</code></pre>
+                </details>
+            </section>
+            {% else %}
+            <section class="error-section">
+                <h2>⚠️ Villa við að sækja gögn</h2>
+                <p>Ekki tókst að sækja gögn frá Hagstofu Íslands. Vinsamlegast reyndu aftur síðar.</p>
+            </section>
+            {% endif %}
+        </main>
+
+        <footer>
+            <p>Gögn frá <a href="https://hagstofa.is" target="_blank">Hagstofu Íslands</a></p>
+            <p>Opin gögn undir Creative Commons Attribution 4.0 leyfi</p>
+        </footer>
+    </div>
+</body>
+</html>
