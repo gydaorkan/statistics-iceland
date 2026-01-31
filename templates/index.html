@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tölfræði Íslands - Statistics Iceland</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Hagstofa Íslands - Gagnasafn</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
     <div class="container">
@@ -63,6 +65,32 @@
                 <p>Ekki tókst að sækja gögn frá Hagstofu Íslands. Vinsamlegast reyndu aftur síðar.</p>
             </section>
             {% endif %}
+            <h1>Hagstofa Íslands - Gagnasafn</h1>
+            <p class="subtitle">Vefþjónusta fyrir tölfræðigögn</p>
+        </header>
+
+        <main>
+            <section class="search-section">
+                <h2>Leita að töflum</h2>
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Sláðu inn leitarorð...">
+                    <button id="searchButton">Leita</button>
+                </div>
+                <div id="searchResults" class="results-container"></div>
+            </section>
+
+            <section class="tables-section">
+                <h2>Tiltækar töflur</h2>
+                <div id="tablesContainer" class="loading">
+                    <p>Hleð gögnum...</p>
+                </div>
+            </section>
+
+            <section class="data-section" id="dataSection" style="display: none;">
+                <h2>Gögn úr töflu</h2>
+                <div id="tableMetadata"></div>
+                <div id="tableData"></div>
+            </section>
         </main>
 
         <footer>
@@ -70,5 +98,142 @@
             <p>Opin gögn undir Creative Commons Attribution 4.0 leyfi</p>
         </footer>
     </div>
+        </footer>
+    </div>
+
+    <script>
+        // Fetch and display available tables
+        async function loadTables() {
+            try {
+                const response = await fetch('/api/tables');
+                const tables = await response.json();
+                displayTables(tables);
+            } catch (error) {
+                console.error('Error loading tables:', error);
+                document.getElementById('tablesContainer').innerHTML = 
+                    '<p class="error">Villa við að sækja töflur</p>';
+            }
+        }
+
+        function displayTables(tables) {
+            const container = document.getElementById('tablesContainer');
+            container.classList.remove('loading');
+            
+            if (!tables || tables.length === 0) {
+                container.innerHTML = '<p>Engar töflur fundust</p>';
+                return;
+            }
+
+            let html = '<ul class="table-list">';
+            tables.forEach(item => {
+                if (item.type === 'l') {
+                    // Category/Folder
+                    html += `<li class="category">
+                        <span class="icon">📁</span>
+                        <strong>${item.text}</strong>
+                    </li>`;
+                } else if (item.type === 't') {
+                    // Table
+                    html += `<li class="table-item">
+                        <span class="icon">📊</span>
+                        <a href="#" onclick="loadTableData('${item.id}'); return false;">
+                            ${item.text}
+                        </a>
+                        <span class="updated">${item.updated || ''}</span>
+                    </li>`;
+                }
+            });
+            html += '</ul>';
+            container.innerHTML = html;
+        }
+
+        // Search functionality
+        document.getElementById('searchButton')?.addEventListener('click', async () => {
+            const keyword = document.getElementById('searchInput').value;
+            if (!keyword) return;
+
+            const resultsContainer = document.getElementById('searchResults');
+            resultsContainer.innerHTML = '<p class="loading">Leita...</p>';
+
+            try {
+                const response = await fetch(`/api/search?q=${encodeURIComponent(keyword)}`);
+                const results = await response.json();
+                
+                if (results.length === 0) {
+                    resultsContainer.innerHTML = '<p>Engar niðurstöður fundust</p>';
+                    return;
+                }
+
+                let html = '<h3>Leitarniðurstöður:</h3><ul class="table-list">';
+                results.forEach(item => {
+                    html += `<li class="table-item">
+                        <span class="icon">📊</span>
+                        <a href="#" onclick="loadTableData('${item.id}'); return false;">
+                            ${item.text}
+                        </a>
+                    </li>`;
+                });
+                html += '</ul>';
+                resultsContainer.innerHTML = html;
+            } catch (error) {
+                console.error('Search error:', error);
+                resultsContainer.innerHTML = '<p class="error">Villa við leit</p>';
+            }
+        });
+
+        // Load table data
+        async function loadTableData(tableId) {
+            const dataSection = document.getElementById('dataSection');
+            const metadataDiv = document.getElementById('tableMetadata');
+            const dataDiv = document.getElementById('tableData');
+
+            dataSection.style.display = 'block';
+            metadataDiv.innerHTML = '<p class="loading">Hleð gögnum...</p>';
+            dataDiv.innerHTML = '';
+
+            try {
+                // Get metadata
+                const metadataResponse = await fetch(`/api/table/${tableId}`);
+                const metadata = await metadataResponse.json();
+
+                metadataDiv.innerHTML = `
+                    <h3>${metadata.title || tableId}</h3>
+                    <p><strong>Uppfært:</strong> ${metadata.updated || 'Ekki vitað'}</p>
+                    <p>${metadata.description || ''}</p>
+                `;
+
+                // Get data
+                const dataResponse = await fetch(`/api/table/${tableId}/data`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                const data = await dataResponse.json();
+
+                if (data.data) {
+                    displayTableData(data);
+                } else {
+                    dataDiv.innerHTML = '<p>Engin gögn í boði</p>';
+                }
+            } catch (error) {
+                console.error('Error loading table data:', error);
+                metadataDiv.innerHTML = '<p class="error">Villa við að sækja gögn</p>';
+            }
+        }
+
+        function displayTableData(data) {
+            const dataDiv = document.getElementById('tableData');
+            
+            // Simple display of data
+            let html = '<div class="data-display"><pre>';
+            html += JSON.stringify(data, null, 2);
+            html += '</pre></div>';
+            
+            dataDiv.innerHTML = html;
+        }
+
+        // Load tables on page load
+        window.addEventListener('DOMContentLoaded', loadTables);
+    </script>
 </body>
 </html>
