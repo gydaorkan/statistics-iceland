@@ -45,6 +45,16 @@ python3 app.py
 http://localhost:5000
 ```
 
+### Þróunarhamur (Development Mode)
+
+Til að keyra í þróunarham með debug mode:
+```bash
+export FLASK_DEBUG=true  # Á Windows: set FLASK_DEBUG=true
+python3 app.py
+```
+
+**Athugið:** Debug mode ætti **aldrei** að vera virkur í framleiðslu (production) vegna öryggisáhættu.
+
 ## API Endpoints
 
 - `GET /` - Aðalsíða með tölfræðigögnum

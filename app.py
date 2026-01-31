@@ -101,7 +101,7 @@ def fetch_population_data():
         data_response.raise_for_status()
         
         return data_response.json()
-    except (requests.RequestException, requests.Timeout) as e:
+    except requests.RequestException as e:
         print(f"Error fetching data from API (using mock data): {e}")
         return get_mock_data()
 
@@ -159,4 +159,7 @@ def api_data():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    import os
+    # Only enable debug mode if explicitly set via environment variable
+    debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+    app.run(debug=debug_mode, host='0.0.0.0', port=5000)
